@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00b847"/>
+      <stop offset="100%" stop-color="#008c3a"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="320" rx="40" fill="#0f1410"/>
+  <path d="M80 88h32v144H80zM156 88h32v144h-32zM232 88h32v144h-32z" fill="url(#g)"/>
+  <text x="50%" y="260" text-anchor="middle" fill="#f5f6f7" font-family="Poppins, sans-serif" font-weight="700" font-size="32">NAVISION</text>
+</svg>

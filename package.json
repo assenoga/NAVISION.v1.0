@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "mssql": "^12.7.0",
+    "multer": "^2.2.0",
+    "sequelize": "^6.37.8"
+  }
+}

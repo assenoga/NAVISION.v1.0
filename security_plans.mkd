@@ -1,0 +1,96 @@
+# Security Implementation Plan for NAVISION
+
+## Goal
+Apply all banking security and role-based permissions requirements to the existing NAVISION project, ensuring it runs without errors.
+
+## Constraints & Preferences
+- Strict role-based permissions: System Administrator login via email+password OR username+password only
+- No other role can log in using email
+- Single default System Administrator account after installation
+- Automatic login form detection (email vs username)
+- Strict RBAC for all user management actions
+- Role-specific dashboards with sidebar, top bar, notifications, profile, cards, charts, responsive design, dark/light mode, search
+- Security features: RBAC, CSRF protection, password hashing, session management, login audit, action audit, file upload validation, permission middleware
+- No public registration page
+- Role-specific dashboards and approval workflow (ED, CFO, MD)
+- Approval history and timeline
+- Reports with filters and export options
+- Rejection rules with mandatory reasons and notifications
+
+## Progress
+### Backend
+- Implemented authentication with email/username detection and role-based middleware
+- User management: create, edit, delete, activate, deactivate, suspend, unlock, reset password
+- Admin permissions management
+- Purchase request workflow with multi-stage approval
+- Audit logs and notification system
+- Vendor management endpoints
+- Export endpoints (CSV)
+- CSRF protection middleware
+- File upload validation (base64, 10 MB limit)
+- Dark/light mode support via backend configuration
+
+### Frontend
+- Login with email/username auto-detection
+- Role-based routing
+- Role-specific dashboards
+- Purchase request form with item management, attachments, approval workflow
+- Approval history and rejection validation (mandatory reason)
+- Reports with filters and CSV export
+- Settings page with user management (create/edit/delete/activate/deactivate/unlock/reset password)
+- Dark/light mode toggle via ThemeContext
+- Notification bell in Navbar
+- Sidebar navigation, responsive layout, top bar with profile
+- Removed dead workout code
+- Added vendor management dashboard
+- Added dark/light mode styling
+
+## Key Decisions
+- Implemented backend vendor management and export endpoints for full workflow
+- Added notification API for real-time updates
+- Implemented CSRF protection middleware on all state-changing routes
+- Removed dead workout application code from frontend
+- Added dark/light mode toggle via ThemeContext and CSS variables
+- Enhanced user management with full edit capabilities and unlock endpoint
+- Added detailed audit logging for all user actions
+- Implemented CSV export for reports and user lists
+- Replaced alert() dialogs with inline validation in Approvals page
+- Added dark/light mode toggle in Navbar and updated CSS variables
+
+## Next Steps
+- Conduct end-to-end testing of approval workflow (ED → CFO → MD)
+- Verify audit logs capture all required actions (login, user management, purchase requests, approvals, rejections)
+- Perform security testing: CSRF, file upload validation, session handling
+- Validate dark/light mode persistence across sessions
+- Ensure reports export correctly with filters applied
+- Conduct role-based access testing: ensure non-admin roles cannot access admin endpoints
+- Finalize installation script to create single default System Administrator account
+- Prepare deployment documentation and security checklist
+
+## Critical Context
+- Original project contained leftover workout tracking code from a different application; this has been removed
+- Backend uses JWT authentication with bcrypt password hashing
+- MongoDB with Mongoose for data persistence
+- Frontend built with React, React Router, and Context API for authentication and theme
+- All API endpoints protected by authentication middleware and role-based checks
+- File upload validation restricts to safe formats and enforces 10 MB limit
+- Approval workflow automatically advances to next role upon approval; rejection requires mandatory reason and sends notifications
+- Audit logs capture user ID, action, timestamp, and IP address for critical operations
+
+## Relevant Files
+- `C:\Users\assenoga\Desktop\NAVISION\bkendend\server.js` – Backend entry point with routes and MongoDB connection
+- `C:\Users\assenoga\Desktop\NAVISION\bkendend\models\userModel.js` – User schema with authentication, role management, login logic
+- `C:\Users\assenoga\Desktop\NAVISION\bkendend\controllers\purchaseRequestController.js` – Purchase request lifecycle, approval stages, attachment handling
+- `C:\Users\assenoga\Desktop\NAVISION\bkendend\routes\admin.js` – Admin-only user management endpoints
+- `C:\Users\assenoga\Desktop\NAVISION\frontend\src\pages\Dashboard.js` – Role-based dashboard with navigation and cards
+- `C:\Users\assenoga\Desktop\NAVISION\frontend\src\pages\PurchaseRequests.js` – Purchase request creation and management
+- `C:\Users\assenoga\Desktop\NAVISION\frontend\src\pages\Approvals.js` – ED/CFO/MD approval workflow with rejection/return validation
+- `C:\Users\assenoga\Desktop\NAVISION\frontend\src\pages\Settings.js` – Admin user management (create/edit/delete/activate/deactivate/unlock)
+- `C:\Users\assenoga\Desktop\NAVISION\frontend\src\pages\VendorManagement.js` – Vendor CRUD for Procurement Officers
+- `C:\Users\assenoga\Desktop\NAVISION\frontend\src\hooks\useLogin.js` – Login hook with email/username auto-detection
+- `C:\Users\assenoga\Desktop\NAVISION\frontend\src\hooks\useAuthContext.js` – Authentication context for global state
+- `C:\Users\assenoga\Desktop\NAVISION\frontend\src\hooks\useTheme.js` – Dark/light mode theme context
+- `C:\Users\assenoga\Desktop\NAVISION\bkendend\middleware\csrfProtection.js` – CSRF protection middleware
+- `C:\Users\assenoga\Desktop\NAVISION\bkendend\models\auditLogModel.js` – Audit log tracking for user actions
+- `C:\Users\assenoga\Desktop\NAVISION\bkendend\models\purchaseRequestModel.js` – Purchase request schema with multi-item support and currency handling
+- `C:\Users\assenoga\Desktop\NAVISION\frontend\src\pages\Login.js` – Login form with email/username auto-detection
