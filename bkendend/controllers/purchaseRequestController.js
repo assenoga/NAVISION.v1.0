@@ -17,6 +17,8 @@ const CURRENCIES = [
   { code: 'AUD', name: 'Australian Dollar' }
 ]
 
+// comments
+
 const BANK_PAYMENT_URL = process.env.T24_PAYMENT_URL || process.env.BANK_PAYMENT_URL || process.env.NAVISION_PAYMENT_URL || process.env.NAVISION_API_URL || ''
 
 const APPROVAL_STAGE_BY_ROLE = {

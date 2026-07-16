@@ -21,7 +21,7 @@ router.get('/purchase-requests', csrfProtection, requireRole('System Administrat
     } else if (user.role === 'Internal Auditor') {
       query.status = { [Op.in]: ['Approved', 'Rejected', 'Returned for Correction'] }
     }
-
+//documents
     if (status) {
       query.status = status
     }
