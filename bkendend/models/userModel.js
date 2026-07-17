@@ -43,9 +43,14 @@ const normalizeAccountStatusValue = (status) => {
   return mapping[normalized] || status
 }
 
+const normalizeEmployeeNumberValue = (employeeNumber) => {
+  return String(employeeNumber || '').trim()
+}
+
 const normalizeUser = (user) => {
   user.username = String(user.username || '').trim().toLowerCase()
   user.email = String(user.email || '').trim().toLowerCase()
+  user.employeeNumber = normalizeEmployeeNumberValue(user.employeeNumber)
   user.role = normalizeRoleValue(user.role) || 'Procurement Officer'
   user.accountStatus = normalizeAccountStatusValue(user.accountStatus) || 'Active'
 
@@ -175,6 +180,7 @@ User.createUser = async function(props) {
 
   const normalizedUsername = username.trim().toLowerCase()
   const normalizedEmail = email.trim().toLowerCase()
+  const normalizedEmployeeNumber = normalizeEmployeeNumberValue(employeeNumber)
 
   if (normalizedUsername.length < 3) {
     throw Error('Username must be at least 3 characters')
@@ -188,13 +194,21 @@ User.createUser = async function(props) {
     throw Error('Password not strong enough')
   }
 
+  const uniqueChecks = [{ username: normalizedUsername }, { email: normalizedEmail }]
+  if (normalizedEmployeeNumber) {
+    uniqueChecks.push({ employeeNumber: normalizedEmployeeNumber })
+  }
+
   const exists = await this.findOne({
     where: {
-      [Op.or]: [{ username: normalizedUsername }, { email: normalizedEmail }]
+      [Op.or]: uniqueChecks
     }
   })
 
   if (exists) {
+    if (normalizedEmployeeNumber && exists.employeeNumber === normalizedEmployeeNumber) {
+      throw Error('Employee number is already assigned to another user')
+    }
     throw Error('Username or email already in use')
   }
 
@@ -210,7 +224,7 @@ User.createUser = async function(props) {
     lastName,
     role,
     department,
-    employeeNumber,
+    employeeNumber: normalizedEmployeeNumber,
     phoneNumber,
     position,
     accountStatus,

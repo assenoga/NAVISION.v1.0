@@ -12,6 +12,9 @@ const Sidebar = () => {
 
   return (
     <aside className="sidebar">
+      <Link to="/dashboard" className="sidebar-brand" aria-label="Tropical Bank dashboard">
+        <img src="/assets/login-logo2.png" alt="Tropical Bank" />
+      </Link>
       <h3>Navigation</h3>
       <ul>
         <li>

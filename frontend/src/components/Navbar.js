@@ -22,23 +22,19 @@ const Navbar = () => {
     <header>
       <div className="container">
         <Link to="/" className="nav-brand">
-          <span className="nav-brand-mark">N</span>
-          <h1>NAVISION</h1>
-          <span className="nav-brand-subtitle">Tropical Bank</span>
+          <span className="nav-brand-mark">‹‹</span>
         </Link>
         <nav>
           {user && (
             <div className="navbar-actions">
               <div className="nav-user-cluster">
                 <Link to="/notifications" className="nav-icon-link" title="Notifications"><Icon name="bell" title="Notifications" /></Link>
-                <span className="nav-user-name">{user.fullName || user.email}</span>
-                <span className="role-pill">{user.role}</span>
+                <span className="nav-user-name">Hi, {user.fullName || user.username || user.email}</span>
               </div>
               <div className="nav-control-cluster">
                 <button className="theme-toggle" onClick={handleThemeToggle} title="Toggle theme">
                   {theme === 'dark' ? 'Light mode' : 'Dark mode'}
                 </button>
-                <span className="nav-system-pill">Secure session</span>
                 <button onClick={handleClick}>Log Out</button>
               </div>
             </div>

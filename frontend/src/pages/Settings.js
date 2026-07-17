@@ -119,6 +119,7 @@ const Settings = () => {
       member.fullName?.toLowerCase().includes(term) ||
       member.email?.toLowerCase().includes(term) ||
       member.username?.toLowerCase().includes(term) ||
+      member.employeeNumber?.toLowerCase().includes(term) ||
       member.department?.toLowerCase().includes(term) ||
       member.position?.toLowerCase().includes(term)
 
@@ -242,6 +243,17 @@ const Settings = () => {
     e.preventDefault()
     setEditError('')
     setEditSuccess('')
+
+    const employeeNumber = editForm.employeeNumber.trim()
+    const duplicateEmployeeNumber = employeeNumber && users.some((member) => (
+      member.employeeNumber?.trim() === employeeNumber && member._id !== editingUser._id
+    ))
+
+    if (duplicateEmployeeNumber) {
+      setEditError('Employee number is already assigned to another user')
+      return
+    }
+
     setIsEditing(true)
 
     try {
@@ -251,7 +263,7 @@ const Settings = () => {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${user.token}`
         },
-        body: JSON.stringify(editForm)
+        body: JSON.stringify({ ...editForm, employeeNumber })
       })
       const data = await response.json()
 
@@ -275,6 +287,15 @@ const Settings = () => {
     e.preventDefault()
     setCreateError('')
     setCreateSuccess('')
+
+    const employeeNumber = createForm.employeeNumber.trim()
+    const duplicateEmployeeNumber = employeeNumber && users.some((member) => member.employeeNumber?.trim() === employeeNumber)
+
+    if (duplicateEmployeeNumber) {
+      setCreateError('Employee number is already assigned to another user')
+      return
+    }
+
     setIsCreating(true)
 
     try {
@@ -286,6 +307,8 @@ const Settings = () => {
         },
         body: JSON.stringify({
           ...createForm,
+          employeeNumber,
+          mustChangePassword: true,
           fullName: createForm.fullName || `${createForm.firstName} ${createForm.lastName}`.trim()
         })
       })
@@ -822,10 +845,11 @@ const Settings = () => {
                   <label className="checkbox-row">
                     <input
                       type="checkbox"
-                      checked={createForm.mustChangePassword}
-                      onChange={(e) => setCreateForm({ ...createForm, mustChangePassword: e.target.checked })}
+                      checked
+                      disabled
+                      readOnly
                     />
-                    Force password change at next login
+                    First login password change is required
                   </label>
                 </div>
 

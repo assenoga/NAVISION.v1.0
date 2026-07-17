@@ -7,6 +7,9 @@ const createToken = (_id) => {
   return jwt.sign({ _id }, process.env.SECRET, { expiresIn: "3d" });
 };
 
+const normalizeEmployeeNumber = (employeeNumber) =>
+  String(employeeNumber || "").trim();
+
 const logAudit = async (req, action, entityType, entityId, details = {}) => {
   try {
     await AuditLog.create({
@@ -97,7 +100,6 @@ const signupUser = async (req, res) => {
     phoneNumber,
     position,
     accountStatus,
-    mustChangePassword,
   } = req.body;
 
   try {
@@ -115,7 +117,7 @@ const signupUser = async (req, res) => {
       position,
       accountStatus,
       createdBy: req.user._id,
-      mustChangePassword,
+      mustChangePassword: true,
     });
     await logAudit(req, "CREATE_USER", "User", user._id, {
       username: user.username,
@@ -175,6 +177,25 @@ const editUser = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    if (Object.prototype.hasOwnProperty.call(updates, "employeeNumber")) {
+      updates.employeeNumber = normalizeEmployeeNumber(updates.employeeNumber);
+
+      if (updates.employeeNumber) {
+        const duplicateEmployee = await User.findOne({
+          where: { employeeNumber: updates.employeeNumber },
+        });
+
+        if (
+          duplicateEmployee &&
+          String(duplicateEmployee._id) !== String(user._id)
+        ) {
+          return res
+            .status(400)
+            .json({ error: "Employee number is already assigned to another user" });
+        }
+      }
+    }
+
     await user.update(updates);
 
     await logAudit(req, "EDIT_USER", "User", user._id, {
@@ -215,6 +236,72 @@ const unlockUser = async (req, res) => {
     res
       .status(200)
       .json({ message: `Account unlocked for ${user.fullName}`, user });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+const changePassword = async (req, res) => {
+  const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  try {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ error: "All password fields are required" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ error: "New passwords do not match" });
+    }
+
+    if (newPassword.length < 8) {
+      return res
+        .status(400)
+        .json({ error: "New password must be at least 8 characters" });
+    }
+
+    const user = await User.findByPk(req.user._id);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const currentMatches = await bcrypt.compare(currentPassword, user.password);
+    if (!currentMatches) {
+      return res.status(400).json({ error: "Current password is incorrect" });
+    }
+
+    const samePassword = await bcrypt.compare(newPassword, user.password);
+    if (samePassword) {
+      return res
+        .status(400)
+        .json({ error: "New password must be different from the temporary password" });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    user.mustChangePassword = false;
+    user.temporaryPasswordAssignedAt = null;
+    await user.save();
+
+    await logAudit(req, "CHANGE_OWN_PASSWORD", "User", user._id, {
+      username: user.username,
+      forcedChangeCompleted: true,
+    });
+
+    res.status(200).json({
+      message: "Password changed successfully",
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        department: user.department,
+        accountStatus: user.accountStatus,
+        mustChangePassword: user.mustChangePassword,
+      },
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
@@ -475,6 +562,7 @@ module.exports = {
   deleteUser,
   resetPassword,
   resetPin,
+  changePassword,
   normalizeLegacyValues,
   getAuditLogs,
   getLoginHistory,
