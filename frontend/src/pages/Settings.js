@@ -2,12 +2,48 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAuthContext } from '../hooks/useAuthContext'
 import Sidebar from '../components/Sidebar'
 
+const roleOptions = [
+  'System Administrator',
+  'Procurement Officer',
+  'Executive Director',
+  'Chief Finance Officer',
+  'Managing Director',
+  'Finance Officer',
+  'Internal Auditor'
+]
+
+const positionOptions = [
+  'System Administrator',
+  'Procurement Officer',
+  'Procurement Manager',
+  'Executive Director',
+  'Chief Finance Officer',
+  'Managing Director',
+  'Finance Officer',
+  'Finance Manager',
+  'Internal Auditor',
+  'Operations Officer',
+  'Department Head',
+  'IT Administrator'
+]
+
+const accountStatuses = ['Active', 'Inactive', 'Suspended', 'Locked']
+
+const getMemberId = (member) => member?._id || member?.id
+
+const getPositionOptions = (currentPosition = '') => {
+  return currentPosition && !positionOptions.includes(currentPosition)
+    ? [currentPosition, ...positionOptions]
+    : positionOptions
+}
+
 const Settings = () => {
   const { user } = useAuthContext()
   const [users, setUsers] = useState([])
   const [usersError, setUsersError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [isRemovingUser, setIsRemovingUser] = useState(false)
+  const [updatingStatusId, setUpdatingStatusId] = useState('')
   const [activeTab, setActiveTab] = useState('users')
   const [showResetModal, setShowResetModal] = useState(false)
   const [resetType, setResetType] = useState('') // 'password' or 'pin'
@@ -130,23 +166,38 @@ const Settings = () => {
   })
 
   const handleStatusUpdate = async (userId, status) => {
-    const response = await fetch(`/api/user/${userId}/status`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${user.token}`
-      },
-      body: JSON.stringify({ status })
-    })
-    const data = await response.json()
-
-    if (!response.ok) {
-      setUsersError(data.error || 'Unable to update user status')
+    if (!userId) {
+      setUsersError('Unable to update user status: missing user id')
       return
     }
 
-    setUsers((currentUsers) => currentUsers.map((member) => (member._id === userId ? data.user || { ...member, accountStatus: status } : member)))
-    setUsersError('')
+    setUpdatingStatusId(userId)
+    try {
+      const response = await fetch(`/api/user/${userId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${user.token}`
+        },
+        body: JSON.stringify({ status })
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        setUsersError(data.error || 'Unable to update user status')
+        return
+      }
+
+      setUsers((currentUsers) => currentUsers.map((member) => (
+        getMemberId(member) === userId ? { ...member, ...(data.user || {}), accountStatus: status } : member
+      )))
+      setUsersError('')
+      await loadUsers()
+    } catch (error) {
+      setUsersError(error.message || 'Unable to update user status')
+    } finally {
+      setUpdatingStatusId('')
+    }
   }
 
   const handleExportUsers = () => {
@@ -171,26 +222,6 @@ const Settings = () => {
     URL.revokeObjectURL(url)
   }
 
-  const handleRoleUpdate = async (userId, role) => {
-    const response = await fetch(`/api/user/${userId}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${user.token}`
-      },
-      body: JSON.stringify({ role })
-    })
-    const data = await response.json()
-
-    if (!response.ok) {
-      setUsersError(data.error || 'Unable to update role')
-      return
-    }
-
-    setUsers((currentUsers) => currentUsers.map((member) => (member._id === userId ? data.user || { ...member, role } : member)))
-    setUsersError('')
-  }
-
   const handleRemoveUser = async (userId) => {
     if (!window.confirm('Remove this user from the system?')) return
 
@@ -207,7 +238,7 @@ const Settings = () => {
       return
     }
 
-    setUsers((currentUsers) => currentUsers.filter((member) => member._id !== userId))
+    setUsers((currentUsers) => currentUsers.filter((member) => getMemberId(member) !== userId))
     setUsersError('')
     setIsRemovingUser(false)
   }
@@ -246,7 +277,7 @@ const Settings = () => {
 
     const employeeNumber = editForm.employeeNumber.trim()
     const duplicateEmployeeNumber = employeeNumber && users.some((member) => (
-      member.employeeNumber?.trim() === employeeNumber && member._id !== editingUser._id
+      member.employeeNumber?.trim() === employeeNumber && getMemberId(member) !== getMemberId(editingUser)
     ))
 
     if (duplicateEmployeeNumber) {
@@ -257,7 +288,7 @@ const Settings = () => {
     setIsEditing(true)
 
     try {
-      const response = await fetch(`/api/user/${editingUser._id}`, {
+      const response = await fetch(`/api/user/${getMemberId(editingUser)}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -464,13 +495,7 @@ const Settings = () => {
                   />
                   <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)}>
                     <option value="all">All Roles</option>
-                    <option value="System Administrator">System Administrator</option>
-                    <option value="Procurement Officer">Procurement Officer</option>
-                    <option value="Executive Director">Executive Director</option>
-                    <option value="Chief Finance Officer">Chief Finance Officer</option>
-                    <option value="Managing Director">Managing Director</option>
-                    <option value="Finance Officer">Finance Officer</option>
-                    <option value="Internal Auditor">Internal Auditor</option>
+                    {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
                   </select>
                   <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
                     <option value="all">All Statuses</option>
@@ -508,23 +533,16 @@ const Settings = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredUsers.map((member) => (
-                      <tr key={member._id}>
+                    {filteredUsers.map((member) => {
+                      const memberId = getMemberId(member)
+                      const isStatusUpdating = updatingStatusId === memberId
+
+                      return (
+                      <tr key={memberId}>
                         <td>{member.fullName}</td>
                         <td>{member.email}</td>
                         <td>
-                          <select
-                            value={member.role}
-                            onChange={(e) => handleRoleUpdate(member._id, e.target.value)}
-                          >
-                            <option value="System Administrator">System Administrator</option>
-                            <option value="Procurement Officer">Procurement Officer</option>
-                            <option value="Executive Director">Executive Director</option>
-                            <option value="Chief Finance Officer">Chief Finance Officer</option>
-                            <option value="Managing Director">Managing Director</option>
-                            <option value="Finance Officer">Finance Officer</option>
-                            <option value="Internal Auditor">Internal Auditor</option>
-                          </select>
+                          <span className="readonly-field">{member.role || 'Unassigned'}</span>
                         </td>
                         <td>
                           <span className={`status-badge status-${member.accountStatus?.toLowerCase()}`}>
@@ -546,7 +564,7 @@ const Settings = () => {
                               <button
                                 type="button"
                                 className="btn-primary btn-sm"
-                                onClick={() => openResetModal(member._id, member.fullName, 'password')}
+                                onClick={() => openResetModal(memberId, member.fullName, 'password')}
                                 title="Reset Password"
                               >
                                 Reset Password
@@ -554,7 +572,7 @@ const Settings = () => {
                             <button
                               type="button"
                               className="btn-secondary btn-sm"
-                              onClick={() => openResetModal(member._id, member.fullName, 'pin')}
+                              onClick={() => openResetModal(memberId, member.fullName, 'pin')}
                               title="Reset PIN"
                             >
                               Reset PIN
@@ -563,7 +581,8 @@ const Settings = () => {
                               <button
                                 type="button"
                                 className="btn-secondary btn-sm"
-                                onClick={() => handleStatusUpdate(member._id, 'Inactive')}
+                                onClick={() => handleStatusUpdate(memberId, 'Inactive')}
+                                disabled={isStatusUpdating}
                               >
                                 Deactivate
                               </button>
@@ -571,7 +590,8 @@ const Settings = () => {
                               <button
                                 type="button"
                                 className="btn-primary btn-sm"
-                                onClick={() => handleStatusUpdate(member._id, 'Active')}
+                                onClick={() => handleStatusUpdate(memberId, 'Active')}
+                                disabled={isStatusUpdating}
                               >
                                 Activate
                               </button>
@@ -579,21 +599,31 @@ const Settings = () => {
                             <button
                               type="button"
                               className="btn-secondary btn-sm"
-                              onClick={() => handleStatusUpdate(member._id, 'Suspended')}
+                              onClick={() => handleStatusUpdate(memberId, 'Suspended')}
+                              disabled={isStatusUpdating || member.accountStatus === 'Suspended'}
                             >
                               Suspend
                             </button>
                             <button
                               type="button"
                               className="btn-secondary btn-sm"
-                              onClick={() => handleStatusUpdate(member._id, 'Active')}
+                              onClick={() => handleStatusUpdate(memberId, 'Active')}
+                              disabled={isStatusUpdating || member.accountStatus === 'Active'}
                             >
                               Unlock
                             </button>
                             <button
                               type="button"
+                              className="btn-secondary btn-sm"
+                              onClick={() => handleStatusUpdate(memberId, 'Locked')}
+                              disabled={isStatusUpdating || member.accountStatus === 'Locked'}
+                            >
+                              Lock
+                            </button>
+                            <button
+                              type="button"
                               className="btn-danger btn-sm"
-                              onClick={() => handleRemoveUser(member._id)}
+                              onClick={() => handleRemoveUser(memberId)}
                               disabled={isRemovingUser}
                             >
                               Delete
@@ -601,7 +631,8 @@ const Settings = () => {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -812,13 +843,7 @@ const Settings = () => {
                   <div className="form-group">
                     <label htmlFor="create-role">Role</label>
                     <select id="create-role" value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}>
-                      <option value="Procurement Officer">Procurement Officer</option>
-                      <option value="Executive Director">Executive Director</option>
-                      <option value="Chief Finance Officer">Chief Finance Officer</option>
-                      <option value="Managing Director">Managing Director</option>
-                      <option value="Finance Officer">Finance Officer</option>
-                      <option value="Internal Auditor">Internal Auditor</option>
-                      <option value="System Administrator">System Administrator</option>
+                      {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
                     </select>
                   </div>
                   <div className="form-group">
@@ -831,7 +856,10 @@ const Settings = () => {
                   </div>
                   <div className="form-group">
                     <label htmlFor="create-position">Position</label>
-                    <input id="create-position" value={createForm.position} onChange={(e) => setCreateForm({ ...createForm, position: e.target.value })} />
+                    <select id="create-position" value={createForm.position} onChange={(e) => setCreateForm({ ...createForm, position: e.target.value })}>
+                      <option value="">Select Position</option>
+                      {getPositionOptions(createForm.position).map((position) => <option key={position} value={position}>{position}</option>)}
+                    </select>
                   </div>
                   <div className="form-group">
                     <label htmlFor="create-accountStatus">Account Status</label>
@@ -980,7 +1008,10 @@ const Settings = () => {
                   </div>
                   <div className="form-group">
                     <label>Position</label>
-                    <input value={editForm.position} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })} />
+                    <select value={editForm.position} onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}>
+                      <option value="">Select Position</option>
+                      {getPositionOptions(editForm.position).map((position) => <option key={position} value={position}>{position}</option>)}
+                    </select>
                   </div>
                   <div className="form-group">
                     <label>Phone Number</label>

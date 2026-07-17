@@ -162,6 +162,7 @@ const editUser = async (req, res) => {
     delete updates.password;
     delete updates.loginHistory;
     delete updates.pin;
+    delete updates.role;
     delete updates.roleForced;
 
     if ((updates.firstName || updates.lastName) && !updates.fullName) {
