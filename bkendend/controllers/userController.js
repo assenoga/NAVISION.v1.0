@@ -10,6 +10,16 @@ const createToken = (_id) => {
 const normalizeEmployeeNumber = (employeeNumber) =>
   String(employeeNumber || "").trim();
 
+const isProtectedAdmin = (user) => {
+  if (!user) return false;
+
+  return (
+    user.role === "System Administrator" ||
+    String(user.username || "").trim().toLowerCase() === "admin" ||
+    String(user.email || "").trim().toLowerCase() === "admin@tropicalbank.co.ug"
+  );
+};
+
 const logAudit = async (req, action, entityType, entityId, details = {}) => {
   try {
     await AuditLog.create({
@@ -103,6 +113,18 @@ const signupUser = async (req, res) => {
   } = req.body;
 
   try {
+    if (role === "System Administrator") {
+      const existingAdmin = await User.findOne({
+        where: { role: "System Administrator" },
+      });
+
+      if (existingAdmin) {
+        return res
+          .status(400)
+          .json({ error: "The System Administrator account already exists" });
+      }
+    }
+
     const user = await User.createUser({
       username,
       email,
@@ -332,6 +354,12 @@ const updateUserStatus = async (req, res) => {
         .json({ error: `Status must be one of: ${validStatuses.join(", ")}` });
     }
 
+    if (isProtectedAdmin(user) && normalizedStatus !== "Active") {
+      return res
+        .status(400)
+        .json({ error: "The System Administrator account cannot be deactivated, suspended, or locked" });
+    }
+
     user.accountStatus = normalizedStatus;
     await user.save();
 
@@ -392,6 +420,12 @@ const deleteUser = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    if (isProtectedAdmin(user)) {
+      return res
+        .status(400)
+        .json({ error: "The System Administrator account cannot be deleted" });
+    }
+
     await user.destroy();
 
     await logAudit(req, "DELETE_USER", "User", req.params.id, {
@@ -423,6 +457,12 @@ const resetPassword = async (req, res) => {
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
+    }
+
+    if (isProtectedAdmin(user)) {
+      return res
+        .status(400)
+        .json({ error: "The System Administrator password cannot be reset from user management" });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -462,6 +502,12 @@ const resetPin = async (req, res) => {
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
+    }
+
+    if (isProtectedAdmin(user)) {
+      return res
+        .status(400)
+        .json({ error: "The System Administrator PIN cannot be reset from user management" });
     }
 
     user.pin = newPin;

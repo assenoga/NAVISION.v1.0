@@ -12,6 +12,8 @@ const roleOptions = [
   'Internal Auditor'
 ]
 
+const creatableRoleOptions = roleOptions.filter((role) => role !== 'System Administrator')
+
 const positionOptions = [
   'System Administrator',
   'Procurement Officer',
@@ -27,14 +29,32 @@ const positionOptions = [
   'IT Administrator'
 ]
 
-const accountStatuses = ['Active', 'Inactive', 'Suspended', 'Locked']
-
 const getMemberId = (member) => member?._id || member?.id
+
+const isProtectedAdmin = (member) => {
+  return (
+    member?.role === 'System Administrator' ||
+    member?.username?.toLowerCase() === 'admin' ||
+    member?.email?.toLowerCase() === 'admin@tropicalbank.co.ug'
+  )
+}
 
 const getPositionOptions = (currentPosition = '') => {
   return currentPosition && !positionOptions.includes(currentPosition)
     ? [currentPosition, ...positionOptions]
     : positionOptions
+}
+
+const getStatusAction = (status) => {
+  if (status === 'Active') {
+    return { label: 'Deactivate', nextStatus: 'Inactive', className: 'btn-secondary' }
+  }
+
+  if (status === 'Locked') {
+    return { label: 'Unlock', nextStatus: 'Active', className: 'btn-primary' }
+  }
+
+  return { label: 'Activate', nextStatus: 'Active', className: 'btn-primary' }
 }
 
 const Settings = () => {
@@ -536,6 +556,9 @@ const Settings = () => {
                     {filteredUsers.map((member) => {
                       const memberId = getMemberId(member)
                       const isStatusUpdating = updatingStatusId === memberId
+                      const isAdminProtected = isProtectedAdmin(member)
+                      const displayedStatus = isAdminProtected ? 'Active' : member.accountStatus
+                      const statusAction = getStatusAction(member.accountStatus)
 
                       return (
                       <tr key={memberId}>
@@ -545,80 +568,44 @@ const Settings = () => {
                           <span className="readonly-field">{member.role || 'Unassigned'}</span>
                         </td>
                         <td>
-                          <span className={`status-badge status-${member.accountStatus?.toLowerCase()}`}>
-                            {member.accountStatus || 'Unknown'}
+                          <span className={`status-badge status-${displayedStatus?.toLowerCase()}`}>
+                            {displayedStatus || 'Unknown'}
                           </span>
                         </td>
                         <td>{member.department}</td>
                         <td>{member.position}</td>
                         <td>
-                            <div className="action-buttons">
+                            <div className="user-row-actions">
                               <button
                                 type="button"
-                                className="btn-primary btn-sm"
+                                className="btn-secondary btn-sm"
                                 onClick={() => openEditModal(member)}
                                 title="Edit User"
                               >
                                 Edit
                               </button>
+                              {isAdminProtected ? (
+                                <span className="protected-account-badge" title="System Administrator account is protected">
+                                  Protected
+                                </span>
+                              ) : (
+                                <>
                               <button
                                 type="button"
                                 className="btn-primary btn-sm"
                                 onClick={() => openResetModal(memberId, member.fullName, 'password')}
                                 title="Reset Password"
                               >
-                                Reset Password
+                                Reset
                               </button>
                             <button
                               type="button"
-                              className="btn-secondary btn-sm"
-                              onClick={() => openResetModal(memberId, member.fullName, 'pin')}
-                              title="Reset PIN"
+                              className={`${statusAction.className} btn-sm`}
+                              onClick={() => handleStatusUpdate(memberId, statusAction.nextStatus)}
+                              disabled={isStatusUpdating}
+                              title={`${statusAction.label} account`}
                             >
-                              Reset PIN
-                            </button>
-                            {member.accountStatus === 'Active' ? (
-                              <button
-                                type="button"
-                                className="btn-secondary btn-sm"
-                                onClick={() => handleStatusUpdate(memberId, 'Inactive')}
-                                disabled={isStatusUpdating}
-                              >
-                                Deactivate
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="btn-primary btn-sm"
-                                onClick={() => handleStatusUpdate(memberId, 'Active')}
-                                disabled={isStatusUpdating}
-                              >
-                                Activate
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              className="btn-secondary btn-sm"
-                              onClick={() => handleStatusUpdate(memberId, 'Suspended')}
-                              disabled={isStatusUpdating || member.accountStatus === 'Suspended'}
-                            >
-                              Suspend
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-secondary btn-sm"
-                              onClick={() => handleStatusUpdate(memberId, 'Active')}
-                              disabled={isStatusUpdating || member.accountStatus === 'Active'}
-                            >
-                              Unlock
-                            </button>
-                            <button
-                              type="button"
-                              className="btn-secondary btn-sm"
-                              onClick={() => handleStatusUpdate(memberId, 'Locked')}
-                              disabled={isStatusUpdating || member.accountStatus === 'Locked'}
-                            >
-                              Lock
+                              {isStatusUpdating ? 'Saving...' : statusAction.label}
                             </button>
                             <button
                               type="button"
@@ -628,6 +615,8 @@ const Settings = () => {
                             >
                               Delete
                             </button>
+                                </>
+                              )}
                           </div>
                         </td>
                       </tr>
@@ -694,7 +683,7 @@ const Settings = () => {
                 <ul>
                   <li>✓ Manage users</li>
                   <li>✓ Assign roles</li>
-                  <li>✓ Reset passwords & PINs</li>
+                  <li>✓ Reset passwords</li>
                   <li>✓ View audit logs</li>
                 </ul>
               </div>
@@ -843,7 +832,7 @@ const Settings = () => {
                   <div className="form-group">
                     <label htmlFor="create-role">Role</label>
                     <select id="create-role" value={createForm.role} onChange={(e) => setCreateForm({ ...createForm, role: e.target.value })}>
-                      {roleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
+                      {creatableRoleOptions.map((role) => <option key={role} value={role}>{role}</option>)}
                     </select>
                   </div>
                   <div className="form-group">

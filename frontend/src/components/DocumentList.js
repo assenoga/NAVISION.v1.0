@@ -185,7 +185,7 @@ const DocumentList = ({ token, documents, onDeleted, onReplaced }) => {
                         }}
                         type="file"
                         className="document-hidden-input"
-                        accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+                        accept=".pdf,.doc,.docx,.xlsx,.png,.jpg,.jpeg"
                         onChange={(event) => handleReplacement(document, event)}
                       />
                     </div>

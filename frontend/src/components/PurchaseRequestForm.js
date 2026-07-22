@@ -15,7 +15,7 @@ const currencyOptions = [
   { code: 'AUD', label: 'AUD - Australian Dollar' }
 ]
 
-const acceptedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'jpg', 'jpeg', 'png']
+const acceptedExtensions = ['pdf', 'doc', 'docx', 'xlsx', 'jpg', 'jpeg', 'png']
 const maxFileSize = 10 * 1024 * 1024
 
 const emptyItem = (currency = 'UGX') => ({
@@ -86,7 +86,7 @@ const PurchaseRequestForm = ({ onCreated }) => {
     })
 
     if (invalid) {
-      setFileError(`${invalid.name} must be an accepted document/image and no larger than 10 MB.`)
+      setFileError(`${invalid.name} must be PDF, DOC, DOCX, XLSX, PNG, JPG, or JPEG and no larger than 10 MB.`)
       return
     }
 
@@ -280,7 +280,7 @@ const PurchaseRequestForm = ({ onCreated }) => {
       <input
         type="file"
         multiple
-        accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+        accept=".pdf,.doc,.docx,.xlsx,.jpg,.jpeg,.png"
         onChange={handleFileChange}
         className="file-input"
       />

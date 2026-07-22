@@ -1,8 +1,40 @@
+const path = require('path')
 const sequelize = require('../config/database')
 const { DataTypes, idAttributes, makeJsonColumn, isValidId, normalizeId, toPlain } = require('./modelUtils')
 
 const DocumentRecord = sequelize.define('Document', {
   ...idAttributes(),
+  name: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.getDataValue('original_filename')
+    },
+    set(value) {
+      const filename = String(value || '').trim()
+      this.setDataValue('original_filename', filename)
+      if (!this.getDataValue('document_name')) {
+        this.setDataValue('document_name', path.parse(filename).name || filename)
+      }
+    }
+  },
+  path: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.getDataValue('file_path')
+    },
+    set(value) {
+      this.setDataValue('file_path', String(value || ''))
+    }
+  },
+  size: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.getDataValue('file_size')
+    },
+    set(value) {
+      this.setDataValue('file_size', Number(value) || 0)
+    }
+  },
   document_name: {
     type: DataTypes.STRING(255),
     allowNull: false
@@ -64,6 +96,9 @@ const serialize = (document) => {
   const raw = toPlain(document)
   return {
     id: String(raw._id || raw.id),
+    name: raw.name || raw.original_filename,
+    path: raw.path || raw.file_path,
+    size: raw.size || raw.file_size,
     document_name: raw.document_name,
     original_filename: raw.original_filename,
     stored_filename: raw.stored_filename,

@@ -1,17 +1,15 @@
 const path = require('path')
 const fs = require('fs/promises')
-const { randomUUID } = require('crypto')
 
-const MAX_DOCUMENT_SIZE = 20 * 1024 * 1024
+const MAX_DOCUMENT_SIZE = 10 * 1024 * 1024
 const DOCUMENT_UPLOAD_RELATIVE_DIR = path.join('uploads', 'documents')
 const DOCUMENT_UPLOAD_ROOT = path.resolve(__dirname, '..', DOCUMENT_UPLOAD_RELATIVE_DIR)
 
-const allowedExtensions = new Set(['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.png', '.jpg', '.jpeg'])
+const allowedExtensions = new Set(['.pdf', '.doc', '.docx', '.xlsx', '.png', '.jpg', '.jpeg'])
 const allowedMimeTypes = new Set([
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
   'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'image/png',
   'image/jpeg'
@@ -49,7 +47,7 @@ const validateDocumentFile = (file) => {
 
   const extension = getSafeExtension(file.originalname)
   if (!allowedExtensions.has(extension) || !allowedMimeTypes.has(file.mimetype)) {
-    const error = new Error('Only PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, and JPEG files are allowed')
+    const error = new Error('Only PDF, DOC, DOCX, XLSX, PNG, JPG, and JPEG files are allowed')
     error.statusCode = 400
     throw error
   }
@@ -57,9 +55,9 @@ const validateDocumentFile = (file) => {
 
 const createStoredFilename = (originalName) => {
   const extension = getSafeExtension(originalName)
-  const timestamp = Math.floor(Date.now() / 1000)
+  const timestamp = Date.now()
   const safeBase = sanitizeBaseName(originalName)
-  return `${timestamp}_${randomUUID()}_${safeBase}${extension}`
+  return `${timestamp}_${safeBase}${extension}`
 }
 
 const toRelativeDocumentPath = (storedFilename) => {

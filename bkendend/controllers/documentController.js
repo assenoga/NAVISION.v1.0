@@ -6,6 +6,7 @@ const {
   sanitizeDocumentName,
   toRelativeDocumentPath,
   resolveDocumentPath,
+  parsePositiveId,
   parseDocumentId,
   validateStoredFileSignature
 } = require('../utils/documentSecurity')
@@ -76,6 +77,8 @@ const canWriteDocument = (user, document = null) => {
 const normalizeDocumentPayload = (req) => {
   const originalFilename = path.basename(req.file.originalname)
   const documentName = sanitizeDocumentName(req.body.document_name || req.body.documentName || path.parse(originalFilename).name)
+  const rawPurchaseId = req.body.purchase_id || req.body.purchaseId || ''
+  const purchaseId = rawPurchaseId ? parsePositiveId(rawPurchaseId) : null
 
   if (!documentName) {
     const error = new Error('Document name is required')
@@ -83,7 +86,16 @@ const normalizeDocumentPayload = (req) => {
     throw error
   }
 
+  if (rawPurchaseId && !purchaseId) {
+    const error = new Error('purchase_id must be a valid positive id')
+    error.statusCode = 400
+    throw error
+  }
+
   return {
+    name: originalFilename,
+    path: toRelativeDocumentPath(req.file.filename),
+    size: req.file.size,
     document_name: documentName,
     original_filename: originalFilename,
     stored_filename: req.file.filename,
@@ -93,14 +105,18 @@ const normalizeDocumentPayload = (req) => {
     uploaded_by: userId(req.user),
     uploaded_by_name: req.user?.fullName || req.user?.email || '',
     uploaded_by_role: req.user?.role || '',
-    purchase_id: sanitizeDocumentName(req.body.purchase_id || req.body.purchaseId || '') || null,
+    purchase_id: purchaseId,
     created_ip: req.ip || ''
   }
 }
 
 const handleControllerError = async (req, res, error) => {
   await removeUploadedFile(req.file)
-  const status = error.statusCode || 500
+  const isDatabaseError = String(error?.name || '').startsWith('Sequelize')
+  const status = error.statusCode || (isDatabaseError ? 400 : 500)
+  if (status >= 500) {
+    console.error('Document upload failed:', error)
+  }
   res.status(status).json({
     error: status >= 500 ? 'Document operation failed. Please try again later.' : error.message
   })
@@ -144,6 +160,7 @@ const uploadDocument = async (req, res) => {
 
     res.status(201).json({
       message: 'Document uploaded successfully',
+      ...document,
       document
     })
   } catch (error) {

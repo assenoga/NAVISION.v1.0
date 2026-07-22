@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { uploadDocument } from '../services/documentApi'
 
-const allowedExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'png', 'jpg', 'jpeg']
+const allowedExtensions = ['pdf', 'doc', 'docx', 'xlsx', 'png', 'jpg', 'jpeg']
 
 const DocumentUpload = ({ token, onUploaded }) => {
   const [documentName, setDocumentName] = useState('')
@@ -39,12 +39,12 @@ const DocumentUpload = ({ token, onUploaded }) => {
 
     const extension = file.name.split('.').pop()?.toLowerCase()
     if (!allowedExtensions.includes(extension)) {
-      setError('Only PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, and JPEG files are allowed.')
+      setError('Only PDF, DOC, DOCX, XLSX, PNG, JPG, and JPEG files are allowed.')
       return
     }
 
-    if (file.size > 20 * 1024 * 1024) {
-      setError('Document must be 20 MB or smaller.')
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Document must be 10 MB or smaller.')
       return
     }
 
@@ -104,7 +104,7 @@ const DocumentUpload = ({ token, onUploaded }) => {
         <input
           className="file-input"
           type="file"
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
+          accept=".pdf,.doc,.docx,.xlsx,.png,.jpg,.jpeg"
           onChange={handleFileChange}
         />
       </label>

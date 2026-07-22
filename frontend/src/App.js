@@ -72,7 +72,6 @@ function App() {
         {user && (
           <footer className="app-footer">
             <span>2026 © NAVISION</span>
-            <span>Powered by: <strong>Manam Infotech</strong></span>
           </footer>
         )}
       </BrowserRouter>

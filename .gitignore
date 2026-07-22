@@ -5,4 +5,4 @@ bin/
 uploads/
 .vs/
 .kilo/
-.agents/
+.agents/.env 

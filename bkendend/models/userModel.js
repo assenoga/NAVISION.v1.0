@@ -328,13 +328,12 @@ User.ensureDefaultAdmin = async function() {
 
   if (existingAdmin) {
     const normalizedRole = normalizeRoleValue(existingAdmin.role || 'System Administrator')
-    const normalizedStatus = normalizeAccountStatusValue(existingAdmin.accountStatus || 'Active')
     const defaultFullName = `${(existingAdmin.firstName || 'System').trim()} ${(existingAdmin.lastName || 'Administrator').trim()}`.trim()
     const normalizedFullName = existingAdmin.fullName?.trim() || defaultFullName
     const updates = {}
 
     if (existingAdmin.role !== normalizedRole) updates.role = normalizedRole
-    if (existingAdmin.accountStatus !== normalizedStatus) updates.accountStatus = normalizedStatus
+    if (existingAdmin.accountStatus !== 'Active') updates.accountStatus = 'Active'
     if (existingAdmin.fullName !== normalizedFullName) updates.fullName = normalizedFullName
 
     if (Object.keys(updates).length > 0) {

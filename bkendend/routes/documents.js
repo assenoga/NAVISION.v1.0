@@ -18,7 +18,7 @@ const upload = (req, res, next) => {
     if (!error) return next()
 
     if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(413).json({ error: 'Document must be 20 MB or smaller' })
+      return res.status(413).json({ error: 'Document must be 10 MB or smaller' })
     }
 
     if (error.code === 'LIMIT_FILE_COUNT') {
